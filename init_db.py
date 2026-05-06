@@ -7,6 +7,7 @@ load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+
 async def init_db():
     print("Initializing database...")
     conn = await asyncpg.connect(DATABASE_URL)
@@ -22,11 +23,11 @@ async def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         """)
-        
+
         # Ensure PostGIS extension
         print("Ensuring PostGIS extension...")
         await conn.execute("CREATE EXTENSION IF NOT EXISTS postgis;")
-        
+
         # Create fasilitas_publik table if not exists
         print("Creating fasilitas_publik table...")
         await conn.execute("""
@@ -38,12 +39,13 @@ async def init_db():
                 geom GEOMETRY(Point, 4326)
             );
         """)
-        
+
         print("Database initialized successfully.")
     except Exception as e:
-        print(f"Error initializing database: {e}")
+        print("Error initializing database: " + str(e))
     finally:
         await conn.close()
+
 
 if __name__ == "__main__":
     asyncio.run(init_db())

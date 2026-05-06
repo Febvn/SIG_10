@@ -73,6 +73,11 @@ function App() {
   const [formData, setFormData] = useState({ nama: '', jenis: 'Masjid', alamat: '' });
   const [notifications, setNotifications] = useState([]);
 
+  // Detection state
+  const [detectionData, setDetectionData] = useState(null);
+  const [detectionLoading, setDetectionLoading] = useState(false);
+  const [detectionMode, setDetectionMode] = useState(false);
+
   const showNotification = (message, type = 'info', title = null) => {
     const id = Date.now();
     const titles = { success: 'Success', error: 'Error', info: 'Info' };
@@ -259,6 +264,37 @@ function App() {
       showNotification(error.response?.data?.detail || error.message, "error", "Gagal Menghapus");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDetectObjects = async (file) => {
+    if (!file) return;
+    try {
+      setDetectionLoading(true);
+      showNotification("Uploading and processing image...", "info", "Detection");
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await axios.post(`${BASE_URL}/detection/process`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      setDetectionData(response.data);
+      setBasemap('satellite'); // Switch to satellite view to see detections better
+      
+      showNotification(`Detected ${response.data.features.length} objects!`, "success", "Detection Success");
+      
+      // Zoom to all detections bounds
+      if (response.data.features.length > 0 && window.mapInstance) {
+        const geojsonLayer = L.geoJSON(response.data);
+        const bounds = geojsonLayer.getBounds();
+        window.mapInstance.fitBounds(bounds, { padding: [50, 50], maxZoom: 18 });
+      }
+    } catch (error) {
+      showNotification(error.response?.data?.detail || "Detection failed", "error");
+    } finally {
+      setDetectionLoading(false);
     }
   };
 
@@ -498,6 +534,20 @@ function App() {
             {addMode ? <X size={18} /> : <PlusCircle size={18} />}
             <span>Tambah</span>
           </button>
+
+          <button 
+            className={`nearby-btn ${detectionMode ? 'active' : ''}`}
+            style={{flex:1}}
+            onClick={() => {
+              setDetectionMode(!detectionMode);
+              setNearbyMode(false);
+              setAddMode(false);
+              setEditMode(false);
+            }}
+          >
+            {detectionMode ? <X size={18} /> : <MapIcon size={18} />}
+            <span>Detect</span>
+          </button>
         </div>
 
         {nearbyMode && (
@@ -549,6 +599,56 @@ function App() {
                 )}
              </div>
           </form>
+        )}
+
+        {detectionMode && (
+          <div className="glass-card" style={{display:'flex', flexDirection:'column', gap:'14px'}}>
+             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                <h4 style={{fontSize:'0.75rem', fontWeight:700, opacity:0.4, letterSpacing: '0.05em'}}>OBJECT DETECTION</h4>
+                {detectionLoading && <div className="loader-small"></div>}
+             </div>
+             
+             <div style={{fontSize:'0.75rem', color:'var(--text-muted)', marginBottom:'5px'}}>
+               Upload a satellite image (GeoTIFF) to detect objects automatically.
+             </div>
+
+             <input 
+               type="file" 
+               accept=".tif,.tiff,.jpg,.jpeg,.png" 
+               style={{display:'none'}} 
+               id="detection-upload"
+               onChange={(e) => handleDetectObjects(e.target.files[0])}
+             />
+             
+             <label 
+               htmlFor="detection-upload" 
+               className="nearby-btn active" 
+               style={{cursor:'pointer', textAlign:'center', justifyContent:'center', background:'white', color:'black'}}
+             >
+               {detectionLoading ? 'Processing...' : 'Upload & Detect'}
+             </label>
+
+             {detectionData && (
+               <div style={{marginTop:'10px'}}>
+                  <div style={{display:'flex', justifyContent:'space-between', fontSize:'0.7rem', fontWeight:600, marginBottom:'8px'}}>
+                    <span>Detections: {detectionData.features.length}</span>
+                    <button 
+                      onClick={() => setDetectionData(null)}
+                      style={{background:'none', border:'none', color:'#ef4444', cursor:'pointer', fontSize:'0.7rem'}}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  <div style={{maxHeight:'150px', overflowY:'auto', display:'flex', flexWrap:'wrap', gap:'5px'}}>
+                    {Array.from(new Set(detectionData.features.map(f => f.properties.class))).map(cls => (
+                      <span key={cls} style={{background:'rgba(255,255,255,0.1)', padding:'4px 8px', borderRadius:'6px', fontSize:'0.65rem'}}>
+                        {cls} ({detectionData.features.filter(f => f.properties.class === cls).length})
+                      </span>
+                    ))}
+                  </div>
+               </div>
+             )}
+          </div>
         )}
 
         {authMode && (
@@ -719,6 +819,51 @@ function App() {
               "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             }
           />
+          {detectionData && (
+            <GeoJSON 
+              data={detectionData} 
+              style={{
+                color: '#fbbf24', // Gold color for better visibility
+                weight: 3,
+                opacity: 0.9,
+                fillColor: 'transparent',
+              }}
+              pointToLayer={(feature, latlng) => {
+                // If it's a point (e.g., center of detection), render as a pulsing circle
+                return L.circleMarker(latlng, {
+                  radius: 20,
+                  fillColor: "#fbbf24",
+                  color: "#fbbf24",
+                  weight: 2,
+                  opacity: 0.8,
+                  fillOpacity: 0.2,
+                  className: 'detection-pulse'
+                });
+              }}
+              onEachFeature={(feature, layer) => {
+                // If it's a polygon, we can also add a center circle manually
+                if (feature.geometry.type === 'Polygon') {
+                  const center = layer.getBounds().getCenter();
+                  const circle = L.circle(center, {
+                    radius: 10,
+                    color: '#fbbf24',
+                    fillColor: '#fbbf24',
+                    fillOpacity: 0.4,
+                    weight: 2
+                  });
+                  circle.addTo(window.mapInstance);
+                }
+
+                layer.bindPopup(`
+                  <div style="padding: 10px; background: #0f172a; color: white; border-radius: 8px;">
+                    <strong style="color: #fbbf24; display: block; margin-bottom: 5px;">Detected Object</strong>
+                    <div style="font-size: 0.9rem;">Class: <strong>${feature.properties.class}</strong></div>
+                    <div style="font-size: 0.8rem; opacity: 0.7;">Confidence: ${(feature.properties.confidence * 100).toFixed(1)}%</div>
+                  </div>
+                `);
+              }}
+            />
+          )}
           {filteredFeatures.map((f, i) => {
             const [lon, lat] = f.geometry.coordinates;
             const category = CATEGORIES[f.properties.jenis] || CATEGORIES.Default;

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import fasilitas, auth
+from routers import fasilitas, auth, detection
 from database import db
 from contextlib import asynccontextmanager
 
@@ -13,8 +13,8 @@ async def lifespan(app: FastAPI):
     await db.disconnect()
 
 app = FastAPI(
-    title="WebGIS API - Tugas Praktikum 9",
-    description="API untuk WebGIS dengan Autentikasi dan CRUD Fasilitas Publik",
+    title="WebGIS API - Tugas Praktikum 10",
+    description="API untuk WebGIS dengan Object Detection YOLOv8",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -32,11 +32,12 @@ app.add_middleware(
 # Root endpoint
 @app.get("/")
 async def root():
-    return {"message": "Selamat datang di API WebGIS Fasilitas Publik - Praktikum 9"}
+    return {"message": "Selamat datang di API WebGIS - Tugas Praktikum 10"}
 
 # Include routers
 app.include_router(auth.router)
 app.include_router(fasilitas.router)
+app.include_router(detection.router)
 
 # Special handling for /geojson
 @app.get("/geojson", tags=["Spatial"])

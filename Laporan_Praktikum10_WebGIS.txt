@@ -1,0 +1,56 @@
+LAPORAN PRAKTIKUM SISTEM INFORMASI GEOGRAFIS
+PERTEMUAN 10: IMPLEMENTASI PIPELINE DETEKSI OBJEK PADA CITRA SATELIT DAN INTEGRASI WEBGIS
+
+Nama		: Febrian Valentino Nugroho
+NIM  		: 123140034
+Mata Kuliah	: Praktikum SIG
+
+________________________________________
+
+1. TUJUAN PRAKTIKUM
+1. Mengimplementasikan pipeline deteksi objek menggunakan model YOLOv8 pada citra aerial/satelit.
+2. Menerapkan teknik tiling untuk memproses citra resolusi tinggi yang melebihi kapasitas input model.
+3. Melakukan transformasi koordinat dari sistem piksel (image space) ke koordinat geografis (geographic space) menggunakan metadata GeoTIFF.
+4. Mengintegrasikan hasil deteksi ke dalam platform WebGIS dalam format GeoJSON secara dinamis.
+5. Membangun antarmuka upload citra dan visualisasi hasil deteksi pada peta Leaflet.
+
+2. ARSITEKTUR SISTEM & TECH STACK
+• Object Detection: YOLOv8 (Ultralytics) - Model deteksi state-of-the-art.
+• Geospatial Processing: Rasterio untuk handling GeoTIFF, Shapely untuk manipulasi geometri, dan GeoJSON untuk ekspor data.
+• Backend: FastAPI (Python) dengan router khusus untuk pemrosesan citra.
+• Frontend: React.js dengan React-Leaflet untuk visualisasi layer deteksi.
+• Image Tiling: Algoritma sliding window dengan overlap 10% untuk mencegah object truncation pada batas tile.
+
+3. LANGKAH-LANGKAH IMPLEMENTASI
+3.1 Pipeline Deteksi YOLOv8
+Deteksi dilakukan menggunakan model YOLOv8 yang berjalan di sisi server. Karena citra satelit biasanya sangat besar, citra dipecah menjadi potongan-potongan (tiles) berukuran 640x640 piksel menggunakan algoritma sliding window sebelum dimasukkan ke model.
+
+3.2 Transformasi Geospasial
+Setiap kotak pembatas (bounding box) hasil deteksi dihitung koordinat pikselnya terhadap gambar original, kemudian dikonversi ke koordinat geografis (Longitude/Latitude) menggunakan matriks transformasi affine dari metadata GeoTIFF. Hal ini memastikan objek yang terdeteksi muncul di lokasi koordinat bumi yang sebenarnya.
+
+3.3 Integrasi WebGIS & Visualisasi
+Hasil deteksi dikirim kembali ke frontend dalam format FeatureCollection GeoJSON. Frontend kemudian merender data tersebut sebagai layer baru di atas peta. Pengguna dapat mengunggah file citra melalui panel "Detect" yang telah ditambahkan pada sidebar.
+
+4. HASIL DAN PENGUJIAN (DOKUMENTASI)
+
+4.1 Panel Deteksi Objek (Upload Interface)
+[Detection Panel: assets/detection_panel.JPG]
+Keterangan: Antarmuka baru pada sidebar untuk mengunggah citra satelit (.tif/.jpg) guna memulai proses deteksi otomatis.
+
+4.2 Visualisasi Hasil Deteksi pada Peta
+[Detection Result: assets/detection_result.JPG]
+Keterangan: Objek yang terdeteksi ditampilkan sebagai poligon/kotak di atas peta satelit sesuai dengan koordinat geografisnya.
+
+4.3 Detail Informasi Objek (Popup)
+[Detection Popup: assets/detection_popup.JPG]
+Keterangan: Interaksi klik pada objek hasil deteksi akan menampilkan informasi kelas objek dan tingkat kepercayaan (confidence score).
+
+________________________________________
+
+5. ANALISIS
+1. Efektivitas Tiling: Penggunaan tiling terbukti efektif menangani citra berukuran besar tanpa menghabiskan memori GPU/RAM secara berlebihan, sambil tetap mempertahankan resolusi objek.
+2. Presisi Geospasial: Integrasi dengan library rasterio memastikan akurasi transformasi koordinat, sehingga hasil deteksi dapat langsung digunakan untuk analisis spasial lebih lanjut.
+3. User Experience: Penambahan fitur deteksi otomatis memberikan nilai tambah yang signifikan pada WebGIS, mengubahnya dari sekadar viewer data statis menjadi alat analisis yang proaktif.
+
+6. KESIMPULAN
+Praktikum Pertemuan 10 berhasil mengimplementasikan pipeline AI untuk deteksi objek satelit yang terintegrasi penuh dengan ekosistem WebGIS. Seluruh fitur utama, mulai dari pemrosesan tiling citra hingga visualisasi GeoJSON dinamis, telah berfungsi dengan baik dan siap digunakan untuk kebutuhan pemetaan otomatis.

@@ -1,0 +1,82 @@
+[
+    {
+        "filename": "lampung2_unila.tif",
+        "bounds": {
+            "left": 105.2435302734375,
+            "bottom": -5.3671942092285905,
+            "right": 105.24627685546875,
+            "top": -5.364459662948641
+        },
+        "center": {
+            "lat": -5.365826936088616,
+            "lon": 105.24490356445312
+        },
+        "crs": "GEOGCS[\"WGS 84\",DATUM[\"World Geodetic System 1984\",SPHEROID[\"WGS 84\",6378137,298.257223563]],PRIMEM[\"Greenwich\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AXIS[\"Latitude\",NORTH],AXIS[\"Longitude\",EAST]]",
+        "width": 256,
+        "height": 256
+    },
+    {
+        "filename": "lampung3_tanjungkarang.tif",
+        "bounds": {
+            "left": 105.25726318359375,
+            "bottom": -5.419148251825296,
+            "right": 105.260009765625,
+            "top": -5.416413939569419
+        },
+        "center": {
+            "lat": -5.417781095697357,
+            "lon": 105.25863647460938
+        },
+        "crs": "GEOGCS[\"WGS 84\",DATUM[\"World Geodetic System 1984\",SPHEROID[\"WGS 84\",6378137,298.257223563]],PRIMEM[\"Greenwich\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AXIS[\"Latitude\",NORTH],AXIS[\"Longitude\",EAST]]",
+        "width": 256,
+        "height": 256
+    },
+    {
+        "filename": "lampung4_bakauheni.tif",
+        "bounds": {
+            "left": 105.75164794921875,
+            "bottom": -5.872867803938926,
+            "right": 105.75439453125,
+            "top": -5.870135630966346
+        },
+        "center": {
+            "lat": -5.871501717452636,
+            "lon": 105.75302124023438
+        },
+        "crs": "GEOGCS[\"WGS 84\",DATUM[\"World Geodetic System 1984\",SPHEROID[\"WGS 84\",6378137,298.257223563]],PRIMEM[\"Greenwich\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AXIS[\"Latitude\",NORTH],AXIS[\"Longitude\",EAST]]",
+        "width": 256,
+        "height": 256
+    },
+    {
+        "filename": "lampung5_natar.tif",
+        "bounds": {
+            "left": 105.1776123046875,
+            "bottom": -5.24412758148954,
+            "right": 105.18035888671875,
+            "top": -5.24139248983425
+        },
+        "center": {
+            "lat": -5.242760035661895,
+            "lon": 105.17898559570312
+        },
+        "crs": "GEOGCS[\"WGS 84\",DATUM[\"World Geodetic System 1984\",SPHEROID[\"WGS 84\",6378137,298.257223563]],PRIMEM[\"Greenwich\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AXIS[\"Latitude\",NORTH],AXIS[\"Longitude\",EAST]]",
+        "width": 256,
+        "height": 256
+    },
+    {
+        "filename": "lampung8_telukbetung.tif",
+        "bounds": {
+            "left": 105.26275634765625,
+            "bottom": -5.432819627299599,
+            "right": 105.2655029296875,
+            "top": -5.430085376999321
+        },
+        "center": {
+            "lat": -5.43145250214946,
+            "lon": 105.26412963867188
+        },
+        "crs": "GEOGCS[\"WGS 84\",DATUM[\"World Geodetic System 1984\",SPHEROID[\"WGS 84\",6378137,298.257223563]],PRIMEM[\"Greenwich\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AXIS[\"Latitude\",NORTH],AXIS[\"Longitude\",EAST]]",
+        "width": 256,
+        "height": 256
+    }
+]

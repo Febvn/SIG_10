@@ -1,81 +1,99 @@
-# WebGIS Fasilitas Publik - Tugas Praktikum 9
+# WebGIS Satellite Object Detection (YOLOv8-OBB)
 
-## PERTEMUAN 9: PENGEMBANGAN FULL-STACK WEBGIS DENGAN AUTENTIKASI JWT DAN MANAJEMEN CRUD SPASIAL
+![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+![React](https://img.shields.io/badge/React-2023-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![Leaflet](https://img.shields.io/badge/Leaflet-1.9-199918?style=for-the-badge&logo=leaflet&logoColor=white)
+![YOLOv8](https://img.shields.io/badge/YOLOv8-Ultralytics-00FFFF?style=for-the-badge)
 
-**Nama**: Febrian Valentino Nugroho  
-**NIM**: 123140034  
-**Mata Kuliah**: Praktikum SIG
+Repositori ini berisi proyek **Automated Feature Extraction** yang mengintegrasikan kecerdasan buatan (AI) dengan WebGIS untuk deteksi objek otomatis pada citra satelit berformat GeoTIFF.
 
----
-
-## Submission Links
-- **GitHub Repository**: [https://github.com/Febvn/SIG_9](https://github.com/Febvn/SIG_9)
-- **Laporan PDF**: [Praktikum9_SIG_123140034.pdf](assets/Praktikum9_SIG_123140034.pdf)
-
----
-
-## 1. TUJUAN PRAKTIKUM
-1. Membangun sistem keamanan pada WebGIS menggunakan protokol JSON Web Token (JWT).
-2. Mengimplementasikan siklus CRUD (Create, Read, Update, Delete) secara lengkap pada database PostGIS.
-3. Mengintegrasikan interaksi peta (Leaflet) dengan form manajemen data (React) secara reaktif.
-4. Menerapkan validasi data tingkat lanjut menggunakan Pydantic di sisi backend dan Constraint Validation di sisi frontend.
-5. Memahami konsep Protected Routes untuk membatasi akses fitur administratif hanya kepada pengguna terautentikasi.
-
-## 2. ARSITEKTUR SISTEM & TECH STACK
-- **Backend**: FastAPI (Python) dengan library JOSE untuk JWT dan Passlib untuk hashing password.
-- **Database**: PostGIS (PostgreSQL) untuk penyimpanan data tabular dan geometri.
-- **Frontend**: React.js dengan Vite, Leaflet sebagai mesin peta, dan Axios untuk komunikasi API.
-- **Keamanan**: Implementasi Bearer Token Authentication dan enkripsi Bcrypt pada penyimpanan kredensial.
-
-## 3. LANGKAH-LANGKAH IMPLEMENTASI
-### 3.1 Implementasi Autentikasi (JWT)
-Backend menyediakan dua endpoint utama: `/auth/register` dan `/auth/login`. Saat login berhasil, server mengirimkan access token yang akan disimpan di localStorage frontend. Token ini kemudian dilampirkan pada header Authorization setiap kali pengguna melakukan operasi tambah, edit, atau hapus data.
-
-### 3.2 Manajemen CRUD & Interaksi Spasial
-- **Create**: Penambahan data fasilitas dilakukan melalui klik pada peta untuk mendapatkan koordinat otomatis (Map-to-Form Sync).
-- **Read**: Data ditarik dalam format GeoJSON menggunakan query `ST_AsGeoJSON` yang dioptimalkan.
-- **Update**: Fitur Live Editing yang memungkinkan pengguna mengubah informasi atau menggeser lokasi fasilitas melalui popup marker.
-- **Delete**: Penghapusan data secara seamless yang memicu state update pada peta tanpa perlu memuat ulang halaman (Single Page Application behavior).
-
-### 3.3 Optimasi Query & UI/UX
-Penggunaan Casting `::geography` pada query radius (`ST_DWithin`) untuk memastikan akurasi jarak dalam satuan meter. Sisi UI dipoles menggunakan desain Neumorphism dan Glassmorphism dengan sistem notifikasi toast kustom.
+## 📝 Laporan Praktikum
+**Nama:** Febrian Valentino Nugroho  
+**NIM:** 123140034  
+**Mata Kuliah:** Praktikum SIG (Pertemuan 10)
 
 ---
 
-## 4. HASIL DAN PENGUJIAN (DOKUMENTASI)
+### 1. Tujuan Praktikum
+1. Mengimplementasikan pipeline deteksi objek otomatis pada citra satelit menggunakan model Deep Learning.
+2. Memahami proses konversi koordinat piksel gambar menjadi koordinat geografis (Latitude/Longitude) menggunakan metadata GeoTIFF.
+3. Mengintegrasikan model YOLOv8-OBB dengan framework FastAPI dan React-Leaflet.
+4. Melakukan pengolahan citra besar melalui metode Image Tiling untuk efisiensi komputasi.
 
-### 4.1 Antarmuka Autentikasi (Login & Register)
-![Login Screen](assets/login.JPG)
-![Sign Up Screen](assets/sign%20up.JPG)
+### 2. Detail Teknologi (Tech Stack)
+*   **Backend:** FastAPI (Python) sebagai penyedia layanan API deteksi.
+*   **AI Model:** YOLOv8-OBB (Oriented Bounding Boxes) dari Ultralytics. Mampu mendeteksi objek miring (bangunan/kapal) secara akurat.
+*   **Geospatial Processing:**
+    *   **Rasterio:** Membaca metadata transformasi affine pada file GeoTIFF.
+    *   **Shapely:** Mengolah hasil deteksi menjadi geometri poligon.
+    *   **GeoJSON:** Format standar transmisi data spasial.
+*   **Frontend:** React.js dan React-Leaflet untuk visualisasi di atas peta interaktif.
 
-### 4.2 Manajemen Data pada Marker (Edit & Delete)
-![Marker Management](assets/market_delete_edit.JPG)
-*Keterangan: Bukti implementasi CRUD lengkap yang dapat diakses langsung melalui interaksi pada peta.*
-
-### 4.3 Form Edit dengan Validasi Frontend
-![Edit Form](assets/Form%20Edit%20dengan%20Validasi%20Frontend.JPG)
-*Keterangan: Form yang menampilkan koordinat otomatis hasil klik peta serta validasi input Pydantic.*
-
----
-
-## 5. ANALISIS
-1. **Keamanan Berlapis**: Dengan JWT, operasi modifikasi data terlindungi dari akses ilegal. Enkripsi password dengan Bcrypt memastikan privasi pengguna terjaga di level database.
-2. **Efisiensi Alur Kerja**: Sinkronisasi antara peta dan form (Map-Form Sync) sangat mengurangi risiko kesalahan input koordinat manual oleh pengguna.
-3. **Skalabilitas**: Pemisahan antara backend (FastAPI) dan frontend (React) memungkinkan aplikasi ini dikembangkan lebih lanjut menjadi platform kolaboratif berskala luas.
-
-## 6. KESIMPULAN
-Praktikum Pertemuan 9 berhasil mengintegrasikan aspek keamanan dan manajemen data yang kompleks ke dalam sebuah ekosistem WebGIS. Seluruh ketentuan tugas, mulai dari sistem login JWT hingga fitur CRUD spasial yang interaktif, telah berhasil diimplementasikan dan diuji dengan baik.
+### 3. Metodologi & Poin Teknis
+*   **Image Tiling:** Memecah citra besar menjadi potongan (640x640 piksel) untuk menghindari *memory crash*.
+*   **Affine Transformation:** Mengubah koordinat $(x, y)$ piksel menjadi $(Lon, Lat)$ bumi asli menggunakan library Rasterio.
+*   **Dynamic Layering:** Merender hasil deteksi secara otomatis sebagai layer poligon di atas basemap.
 
 ---
 
-## Cara Setup (GitHub Submission)
-1. **Clone & Install**:
-   - Frontend: `cd frontend && npm install`
-   - Backend: `pip install -r requirements.txt`
-2. **Environment**:
-   Buat file `.env` berisi `DATABASE_URL` dan `SECRET_KEY`.
-3. **Database**:
-   Pastikan ekstensi PostGIS aktif dan jalankan `python init_db.py`.
-4. **Running**:
-   - Backend: `uvicorn main:app --reload`
-   - Frontend: `npm run dev`
+### 4. Langkah Kerja & Implementasi Kode
+1. **Setup Environment:** Instalasi library `ultralytics`, `rasterio`, dan `shapely`.
+2. **Backend Logic:** Pengembangan file `routers/detection.py` yang menangani upload file TIF, proses inferensi YOLO, dan transformasi koordinat.
+3. **Frontend Integration:** Penambahan fitur Upload pada sidebar dan fungsi untuk menampilkan hasil deteksi sebagai objek poligon di peta.
+
+![Router Implementation](pratikum_10/router-detection.JPG)
+
+---
+
+### 5. Hasil Pengujian (Dokumentasi)
+
+
+Berikut adalah hasil deteksi di 5 lokasi strategis di Provinsi Lampung:
+
+#### Figure 1: Bakauheni (Deteksi Kapal & Infrastruktur Pelabuhan)
+![Bakauheni](pratikum_10/bakau%20hueni%20decected.JPG)
+
+#### Figure 2: UNILA (Deteksi Gedung & Area Pendidikan)
+![UNILA](pratikum_10/unila%20detected.JPG)
+
+#### Figure 3: Tanjung Karang (Deteksi Kepadatan Bangunan Pusat Kota)
+![Tanjung Karang](pratikum_10/tanjung%20karang%20detected.JPG)
+
+#### Figure 4: Teluk Betung (Deteksi Pemukiman Pesisir)
+![Teluk Betung](pratikum_10/teluk%20betung.JPG)
+
+#### Figure 5: Natar (Deteksi Area Transportasi/Bandara)
+![Natar](pratikum_10/natar%20lampung.JPG)
+
+---
+
+### 6. Data Sampel Citra Satelit (GeoTIFF)
+Proyek ini menyertakan sampel citra satelit asli (.tif) yang terletak di folder `data/tif_samples/`:
+*   `lampung2_unila.tif`
+*   `lampung3_tanjungkarang.tif`
+*   `lampung4_bakauheni.tif`
+*   `lampung5_natar.tif`
+*   `lampung8_telukbetung.tif`
+
+Semua file di atas memiliki referensi geografis **WGS 84 (EPSG:4326)**.
+
+---
+
+### 7. Cara Menjalankan Proyek
+
+#### Backend
+1. Masuk ke root directory.
+2. Aktifkan virtual environment: `.\.venv\Scripts\activate`
+3. Jalankan server: `python -m uvicorn main:app --reload`
+
+#### Frontend
+1. Masuk ke folder `frontend`.
+2. Jalankan: `npm run dev`
+
+---
+
+### 8. Analisis & Kesimpulan
+*   **Akurasi Spasial:** File `.tif` sangat krusial karena menyimpan metadata spasial yang tidak ada pada `.jpg`.
+*   **YOLOv8-OBB:** Sangat efektif karena objek satelit jarang sejajar dengan sumbu gambar.
+*   **Kesimpulan:** Sistem Automated Feature Extraction berhasil dibangun dengan koordinat bumi yang presisi.
