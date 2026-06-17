@@ -19,7 +19,7 @@ async def get_geojson(pool=Depends(get_db)):
     query = """
     SELECT jsonb_build_object(
         'type',     'FeatureCollection',
-        'features', jsonb_agg(features.feature)
+        'features', COALESCE(jsonb_agg(features.feature), '[]'::jsonb)
     )
     FROM (
       SELECT jsonb_build_object(

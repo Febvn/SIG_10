@@ -182,3 +182,60 @@
     border-right-color: var(--border);
   }
 }
+
+/* Detection Label Animation */
+@keyframes pulse-label {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 20px rgba(239, 68, 68, 0.6), 0 0 0 3px rgba(239, 68, 68, 0.2);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 6px 30px rgba(239, 68, 68, 0.8), 0 0 0 5px rgba(239, 68, 68, 0.3);
+  }
+}
+
+.detection-label {
+  pointer-events: none;
+  z-index: 1000 !important;
+}
+
+.detection-pulse {
+  animation: pulse-circle 2s infinite;
+}
+
+@keyframes pulse-circle {
+  0%, 100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* Leaflet Popup for Detection */
+.leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.leaflet-popup-content {
+  margin: 0;
+}
+
+/* Search Center Marker Animation */
+@keyframes pulse-search {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.8);
+  }
+  50% {
+    transform: scale(1.2);
+    box-shadow: 0 0 40px rgba(16, 185, 129, 1);
+  }
+}
+
+.search-center-marker {
+  z-index: 1000 !important;
+}

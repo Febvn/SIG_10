@@ -88,16 +88,23 @@ function App() {
   };
 
   const stats = useMemo(() => {
-    if (!geoData) return {};
-    const counts = {};
-    geoData.features.forEach(f => {
-      counts[f.properties.jenis] = (counts[f.properties.jenis] || 0) + 1;
-    });
-    return counts;
-  }, [geoData]);
+    // Only calculate stats from nearby results when in nearby mode
+    if (nearbyMode && nearbyResults.length > 0) {
+      const counts = {};
+      nearbyResults.forEach(f => {
+        const jenis = f.jenis || f.properties?.jenis;
+        if (jenis) {
+          counts[jenis] = (counts[jenis] || 0) + 1;
+        }
+      });
+      return counts;
+    }
+    return {};
+  }, [nearbyMode, nearbyResults]);
 
   useEffect(() => {
-    fetchData();
+    // Don't fetch data on startup - only fetch when needed
+    // fetchData(); // REMOVED: No longer auto-fetch on load
     if (token) {
       verifyToken();
     }
@@ -276,18 +283,22 @@ function App() {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await axios.post(`${BASE_URL}/detection/process`, formData, {
+      // Use enhanced detector with visualization
+      const response = await axios.post(`${BASE_URL}/detection/process?use_enhanced=true&conf_threshold=0.25&visualize=false`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
-      setDetectionData(response.data);
+      const geojsonData = response.data.geojson || response.data;
+      const detectionCount = response.data.detections_count || geojsonData.features?.length || 0;
+      
+      setDetectionData(geojsonData);
       setBasemap('satellite'); // Switch to satellite view to see detections better
       
-      showNotification(`Detected ${response.data.features.length} objects!`, "success", "Detection Success");
+      showNotification(`Detected ${detectionCount} objects!`, "success", "Detection Success");
       
       // Zoom to all detections bounds
-      if (response.data.features.length > 0 && window.mapInstance) {
-        const geojsonLayer = L.geoJSON(response.data);
+      if (geojsonData?.features && geojsonData.features.length > 0 && window.mapInstance) {
+        const geojsonLayer = L.geoJSON(geojsonData);
         const bounds = geojsonLayer.getBounds();
         window.mapInstance.fitBounds(bounds, { padding: [50, 50], maxZoom: 18 });
       }
@@ -411,14 +422,34 @@ function App() {
   };
 
   const filteredFeatures = useMemo(() => {
-    if (!geoData) return [];
-    return geoData.features.filter(f => {
-      const matchesSearch = f.properties.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          f.properties.jenis.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = activeCategory ? f.properties.jenis === activeCategory : true;
-      return matchesSearch && matchesCategory;
-    });
-  }, [geoData, searchTerm, activeCategory]);
+    // Only show features in nearby mode with results
+    if (nearbyMode && nearbyResults.length > 0) {
+      return nearbyResults.map(f => {
+        // Convert API response to GeoJSON-like format
+        if (!f.geometry) {
+          return {
+            id: f.id,
+            geometry: {
+              type: 'Point',
+              coordinates: [f.longitude, f.latitude]
+            },
+            properties: {
+              nama: f.nama,
+              jenis: f.jenis,
+              alamat: f.alamat
+            }
+          };
+        }
+        return f;
+      }).filter(f => {
+        const matchesSearch = f.properties.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            f.properties.jenis.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesCategory = activeCategory ? f.properties.jenis === activeCategory : true;
+        return matchesSearch && matchesCategory;
+      });
+    }
+    return [];
+  }, [nearbyMode, nearbyResults, searchTerm, activeCategory]);
 
 
   return (
@@ -477,7 +508,7 @@ function App() {
             }}
           >
             <MapIcon size={16} color="white" style={{opacity: 0.6}} />
-            <span style={{fontSize:'1.3rem', fontWeight:800, lineHeight: 1}}>{geoData ? geoData.features.length : 0}</span>
+            <span style={{fontSize:'1.3rem', fontWeight:800, lineHeight: 1}}>{nearbyMode && nearbyResults.length > 0 ? nearbyResults.length : 0}</span>
             <span style={{fontSize:'0.6rem', fontWeight:700, opacity:0.4}}>TOTAL</span>
           </div>
 
@@ -551,10 +582,33 @@ function App() {
         </div>
 
         {nearbyMode && (
-          <div className="glass-card" style={{boxShadow: 'var(--nm-in)', padding: '20px'}}>
-            <div style={{display:'flex', justifyContent:'space-between', marginBottom:'12px', fontSize:'0.8rem', fontWeight: 600}}>
+          <div className="glass-card" style={{boxShadow: 'var(--nm-in)', padding: '14px'}}>
+            {!searchPoint ? (
+              <div style={{textAlign: 'center', marginBottom: '10px'}}>
+                <div style={{display: 'flex', justifyContent: 'center', marginBottom: '8px'}}>
+                  <MapPin size={24} color="white" style={{opacity: 0.6}} />
+                </div>
+                <div style={{fontSize: '0.8rem', fontWeight: 600, color: 'white', marginBottom: '4px'}}>
+                  Klik di Peta
+                </div>
+                <div style={{fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: 1.3}}>
+                  Tap on map to explore area
+                </div>
+              </div>
+            ) : (
+              <div style={{marginBottom: '10px', padding: '8px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.3)'}}>
+                <div style={{fontSize: '0.65rem', color: '#10b981', fontWeight: 600, marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '4px'}}>
+                  <LocateFixed size={12} /> AREA SELECTED
+                </div>
+                <div style={{fontSize: '0.6rem', color: 'var(--text-muted)'}}>
+                  {searchPoint[0].toFixed(5)}, {searchPoint[1].toFixed(5)}
+                </div>
+              </div>
+            )}
+            
+            <div style={{display:'flex', justifyContent:'space-between', marginBottom:'8px', fontSize:'0.75rem', fontWeight: 600}}>
               <span>Radius</span>
-              <span style={{color: 'white', background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '6px'}}>{radius}m</span>
+              <span style={{color: 'white', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '6px', fontSize: '0.7rem'}}>{radius}m</span>
             </div>
             <input 
               type="range" 
@@ -565,6 +619,29 @@ function App() {
               onChange={(e) => setRadius(parseInt(e.target.value))}
               style={{width: '100%', accentColor: 'white'}}
             />
+            
+            {searchPoint && (
+              <button 
+                onClick={() => {
+                  setNearbyResults([]);
+                  setSearchPoint(null);
+                }}
+                style={{
+                  width: '100%',
+                  marginTop: '10px',
+                  padding: '8px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '8px',
+                  color: 'white',
+                  fontSize: '0.7rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Clear & Search New Area
+              </button>
+            )}
           </div>
         )}
 
@@ -580,8 +657,8 @@ function App() {
                  Tap on map to set location
                </div>
              ) : newPoint ? (
-               <div style={{fontSize:'0.7rem', color:'white', fontWeight:600, textAlign: 'center', background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '10px'}}>
-                 📍 {newPoint.lat.toFixed(5)}, {newPoint.lng.toFixed(5)}
+               <div style={{fontSize:'0.7rem', color:'white', fontWeight:600, textAlign: 'center', background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'}}>
+                 <MapPin size={14} /> {newPoint.lat.toFixed(5)}, {newPoint.lng.toFixed(5)}
                </div>
              ) : null}
              
@@ -602,14 +679,14 @@ function App() {
         )}
 
         {detectionMode && (
-          <div className="glass-card" style={{display:'flex', flexDirection:'column', gap:'14px'}}>
+          <div className="glass-card" style={{display:'flex', flexDirection:'column', gap:'10px', padding: '14px'}}>
              <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                <h4 style={{fontSize:'0.75rem', fontWeight:700, opacity:0.4, letterSpacing: '0.05em'}}>OBJECT DETECTION</h4>
+                <h4 style={{fontSize:'0.7rem', fontWeight:700, opacity:0.4, letterSpacing: '0.05em'}}>OBJECT DETECTION</h4>
                 {detectionLoading && <div className="loader-small"></div>}
              </div>
              
-             <div style={{fontSize:'0.75rem', color:'var(--text-muted)', marginBottom:'5px'}}>
-               Upload a satellite image (GeoTIFF) to detect objects automatically.
+             <div style={{fontSize:'0.7rem', color:'var(--text-muted)', lineHeight: 1.3}}>
+               Upload satellite image to detect objects
              </div>
 
              <input 
@@ -623,14 +700,14 @@ function App() {
              <label 
                htmlFor="detection-upload" 
                className="nearby-btn active" 
-               style={{cursor:'pointer', textAlign:'center', justifyContent:'center', background:'white', color:'black'}}
+               style={{cursor:'pointer', textAlign:'center', justifyContent:'center', background:'white', color:'black', padding: '8px', fontSize: '0.75rem'}}
              >
                {detectionLoading ? 'Processing...' : 'Upload & Detect'}
              </label>
 
-             {detectionData && (
-               <div style={{marginTop:'10px'}}>
-                  <div style={{display:'flex', justifyContent:'space-between', fontSize:'0.7rem', fontWeight:600, marginBottom:'8px'}}>
+             {detectionData && detectionData.features && (
+               <div style={{marginTop:'6px'}}>
+                  <div style={{display:'flex', justifyContent:'space-between', fontSize:'0.65rem', fontWeight:600, marginBottom:'6px'}}>
                     <span>Detections: {detectionData.features.length}</span>
                     <button 
                       onClick={() => setDetectionData(null)}
@@ -822,45 +899,85 @@ function App() {
           {detectionData && (
             <GeoJSON 
               data={detectionData} 
-              style={{
-                color: '#fbbf24', // Gold color for better visibility
-                weight: 3,
-                opacity: 0.9,
-                fillColor: 'transparent',
-              }}
+              style={(feature) => ({
+                color: '#ef4444', // Red for high visibility
+                weight: 4,
+                opacity: 1,
+                fillColor: '#ef4444',
+                fillOpacity: 0.15,
+                dashArray: '10, 5',
+              })}
               pointToLayer={(feature, latlng) => {
-                // If it's a point (e.g., center of detection), render as a pulsing circle
                 return L.circleMarker(latlng, {
                   radius: 20,
-                  fillColor: "#fbbf24",
-                  color: "#fbbf24",
-                  weight: 2,
-                  opacity: 0.8,
-                  fillOpacity: 0.2,
+                  fillColor: "#ef4444",
+                  color: "#ef4444",
+                  weight: 3,
+                  opacity: 1,
+                  fillOpacity: 0.3,
                   className: 'detection-pulse'
                 });
               }}
               onEachFeature={(feature, layer) => {
-                // If it's a polygon, we can also add a center circle manually
+                const props = feature.properties || {};
+                const className = props.class || 'Unknown';
+                const confidence = ((props.confidence || 0) * 100).toFixed(1);
+                
+                // Add permanent label on the polygon
                 if (feature.geometry.type === 'Polygon') {
                   const center = layer.getBounds().getCenter();
-                  const circle = L.circle(center, {
-                    radius: 10,
-                    color: '#fbbf24',
-                    fillColor: '#fbbf24',
-                    fillOpacity: 0.4,
-                    weight: 2
+                  
+                  // Create a permanent label
+                  const label = L.divIcon({
+                    className: 'detection-label',
+                    html: `
+                      <div style="
+                        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+                        color: white;
+                        padding: 8px 14px;
+                        border-radius: 20px;
+                        font-size: 0.75rem;
+                        font-weight: 700;
+                        white-space: nowrap;
+                        box-shadow: 0 4px 20px rgba(239, 68, 68, 0.6), 0 0 0 3px rgba(239, 68, 68, 0.2);
+                        border: 2px solid rgba(255, 255, 255, 0.9);
+                        letter-spacing: 0.5px;
+                        text-transform: uppercase;
+                        animation: pulse-label 2s infinite;
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                      ">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                        ${className}
+                      </div>
+                    `,
+                    iconSize: [120, 30],
+                    iconAnchor: [60, 15]
                   });
-                  circle.addTo(window.mapInstance);
+                  
+                  L.marker(center, { icon: label }).addTo(window.mapInstance);
                 }
 
+                // Popup with detailed info
                 layer.bindPopup(`
-                  <div style="padding: 10px; background: #0f172a; color: white; border-radius: 8px;">
-                    <strong style="color: #fbbf24; display: block; margin-bottom: 5px;">Detected Object</strong>
-                    <div style="font-size: 0.9rem;">Class: <strong>${feature.properties.class}</strong></div>
-                    <div style="font-size: 0.8rem; opacity: 0.7;">Confidence: ${(feature.properties.confidence * 100).toFixed(1)}%</div>
+                  <div style="padding: 15px; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: white; border-radius: 12px; border: 2px solid #ef4444; min-width: 200px;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                      <div>
+                        <div style="color: #ef4444; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px;">Detected Object</div>
+                        <div style="font-size: 1.1rem; font-weight: 700;">${className}</div>
+                      </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 8px;">
+                      <span style="font-size: 0.75rem; opacity: 0.7;">Confidence</span>
+                      <span style="font-size: 0.9rem; font-weight: 700; color: #10b981;">${confidence}%</span>
+                    </div>
                   </div>
-                `);
+                `, { maxWidth: 300 });
+                
+                // Open popup automatically
+                layer.openPopup();
               }}
             />
           )}
@@ -933,6 +1050,53 @@ function App() {
               </Marker>
             );
           })}
+          
+          {/* Radius Circle Visualization */}
+          {nearbyMode && searchPoint && (
+            <>
+              <Circle 
+                center={searchPoint} 
+                radius={radius}
+                pathOptions={{
+                  color: '#10b981',
+                  fillColor: '#10b981',
+                  fillOpacity: 0.1,
+                  weight: 2,
+                  dashArray: '5, 10'
+                }}
+              />
+              <Marker 
+                position={searchPoint}
+                icon={L.divIcon({
+                  className: 'search-center-marker',
+                  html: `
+                    <div style="
+                      width: 20px;
+                      height: 20px;
+                      background: #10b981;
+                      border: 3px solid white;
+                      border-radius: 50%;
+                      box-shadow: 0 0 20px rgba(16, 185, 129, 0.8);
+                      animation: pulse-search 2s infinite;
+                    "></div>
+                  `,
+                  iconSize: [20, 20],
+                  iconAnchor: [10, 10]
+                })}
+              >
+                <Popup>
+                  <div style={{padding: '10px', textAlign: 'center'}}>
+                    <div style={{fontWeight: 700, marginBottom: '5px'}}>Search Center</div>
+                    <div style={{fontSize: '0.75rem', opacity: 0.7}}>Radius: {radius}m</div>
+                    <div style={{fontSize: '0.7rem', opacity: 0.6, marginTop: '5px'}}>
+                      Found: {nearbyResults.length} facilities
+                    </div>
+                  </div>
+                </Popup>
+              </Marker>
+            </>
+          )}
+          
           <div className="map-controls">
                 <button 
                   className={`control-btn ${basemap === 'dark' ? 'active' : ''}`}

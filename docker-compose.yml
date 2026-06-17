@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgis/postgis:15-3.3
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: db_gis_itera
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://postgres:admin123@db:5432/db_gis_itera
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data
+      - ./detection:/app/detection
+
+  frontend:
+    image: node:18-alpine
+    working_dir: /app
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+    command: sh -c "npm install && npm run dev -- --host"
+    environment:
+      VITE_API_URL: http://localhost:8000
+
+volumes:
+  postgres_data:
