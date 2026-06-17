@@ -1,10 +1,10 @@
-# Backend Dockerfile
+# Backend Dockerfile for Railway
 FROM python:3.11-slim
 
 WORKDIR /app
 
 # Install system dependencies for PostGIS and image processing
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     gcc \
     gdal-bin \
@@ -13,20 +13,21 @@ RUN apt-get update && apt-get install -y \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
-    libxrender-dev \
+    libxrender1 \
     libgomp1 \
-    libxcb1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python dependencies
+# Copy requirements and install Python dependencies with no cache
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
 
-# Expose port
-EXPOSE 8000
+# Railway uses PORT environment variable
+ENV PORT=8000
+EXPOSE $PORT
 
-# Run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the application with PORT from environment
+CMD uvicorn main:app --host 0.0.0.0 --port $PORT
