@@ -34,6 +34,23 @@ app.add_middleware(
 async def root():
     return {"message": "Selamat datang di API WebGIS - Tugas Praktikum 10"}
 
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    import sys
+    opencv_info = "not loaded"
+    try:
+        import cv2
+        opencv_info = f"cv2 {cv2.__version__} - {cv2.__file__}"
+    except ImportError as e:
+        opencv_info = f"ERROR: {str(e)}"
+    
+    return {
+        "status": "healthy",
+        "python_version": sys.version,
+        "opencv": opencv_info
+    }
+
 # Include routers
 app.include_router(auth.router)
 app.include_router(fasilitas.router)
